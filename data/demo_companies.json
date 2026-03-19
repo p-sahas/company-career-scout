@@ -1,0 +1,62 @@
+[
+  {
+    "name": "Axiata Digital Labs",
+    "aliases": ["ADL"],
+    "industry": "Technology",
+    "description": "Digital innovation arm of Axiata Group in Sri Lanka"
+  },
+  {
+    "name": "WSO2",
+    "aliases": [],
+    "industry": "Technology",
+    "description": "Open-source integration and API management platform"
+  },
+  {
+    "name": "Fortude",
+    "aliases": [],
+    "industry": "Technology",
+    "description": "Digital transformation and enterprise solutions"
+  },
+  {
+    "name": "PickMe",
+    "aliases": [],
+    "industry": "Transportation/Technology",
+    "description": "Sri Lanka's leading ride-hailing platform"
+  },
+  {
+    "name": "Millennium IT",
+    "aliases": ["MIT"],
+    "industry": "Technology",
+    "description": "Financial technology solutions provider"
+  },
+  {
+    "name": "LSEG Sri Lanka",
+    "aliases": ["LSEG SL"],
+    "industry": "Financial Technology",
+    "description": "London Stock Exchange Group's Sri Lanka technology center"
+  },
+  {
+    "name": "Sysco LABS Sri Lanka",
+    "aliases": ["Sysco"],
+    "industry": "Technology",
+    "description": "Technology arm of Sysco Corporation"
+  },
+  {
+    "name": "CodeGen International",
+    "aliases": ["CodeGen"],
+    "industry": "Technology",
+    "description": "Travel technology and AI solutions"
+  },
+  {
+    "name": "IFS Sri Lanka",
+    "aliases": ["IFS SL", "IFS"],
+    "industry": "Enterprise Software",
+    "description": "Enterprise software for service-centric businesses"
+  },
+  {
+    "name": "99x",
+    "aliases": ["99x Technology"],
+    "industry": "Technology",
+    "description": "Product engineering company"
+  }
+]
