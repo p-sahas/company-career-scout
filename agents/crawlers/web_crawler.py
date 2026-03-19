@@ -1,6 +1,6 @@
 """
 General web crawler (fallback).
-Uses Brave Search API or direct Google search for SL-scoped results.
+Uses Tavily Search API or direct Google search for SL-scoped results.
 """
 
 import os
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class WebCrawler(BaseCrawler):
-    """Fallback web crawler using Brave Search API or Google."""
+    """Fallback web crawler using Tavily Search API or Google."""
 
     def __init__(self, max_results: int = 10):
         super().__init__(name="web", max_results=max_results)
@@ -30,11 +30,11 @@ class WebCrawler(BaseCrawler):
         """
         results = []
 
-        # Try Brave Search API first
-        brave_key = os.environ.get("BRAVE_SEARCH_API_KEY")
-        if brave_key:
-            brave_results = await self._brave_search(query, brave_key)
-            results.extend(brave_results)
+        # Try Tavily Search API first
+        tavily_key = os.environ.get("TAVILY_API_KEY")
+        if tavily_key:
+            tavily_results = await self._tavily_search(query, tavily_key)
+            results.extend(tavily_results)
 
         # Try SerpAPI if Brave didn't work
         if not results:
@@ -53,52 +53,44 @@ class WebCrawler(BaseCrawler):
         )
         return results[: self.max_results]
 
-    async def _brave_search(
+    async def _tavily_search(
         self, query: str, api_key: str
     ) -> list[RawResult]:
-        """Search using Brave Search API."""
+        """Search using Tavily Search API."""
         results = []
 
         try:
-            import httpx
+            from tavily import TavilyClient
 
-            async with httpx.AsyncClient(timeout=30) as client:
-                response = await client.get(
-                    "https://api.search.brave.com/res/v1/web/search",
-                    headers={
-                        "Accept": "application/json",
-                        "Accept-Encoding": "gzip",
-                        "X-Subscription-Token": api_key,
-                    },
-                    params={
-                        "q": query,
-                        "count": self.max_results,
-                        "country": "LK",
-                    },
+            client = TavilyClient(api_key=api_key)
+            response = client.search(
+                query=query,
+                max_results=self.max_results,
+                search_depth="basic",
+                include_answer=False,
+            )
+
+            for result in response.get("results", []):
+                results.append(
+                    RawResult(
+                        source_platform="web",
+                        source_url=result.get("url", ""),
+                        raw_text=self._safe_text(
+                            f"{result.get('title', '')}\n\n"
+                            f"{result.get('content', '')}"
+                        ),
+                        reviewer_type="general",
+                        metadata={
+                            "type": "web_result",
+                            "search_engine": "tavily",
+                            "title": result.get("title", ""),
+                            "score": result.get("score"),
+                        },
+                    )
                 )
 
-                if response.status_code == 200:
-                    data = response.json()
-                    for result in data.get("web", {}).get("results", []):
-                        results.append(
-                            RawResult(
-                                source_platform="web",
-                                source_url=result.get("url", ""),
-                                raw_text=self._safe_text(
-                                    f"{result.get('title', '')}\n\n"
-                                    f"{result.get('description', '')}"
-                                ),
-                                reviewer_type="general",
-                                metadata={
-                                    "type": "web_result",
-                                    "search_engine": "brave",
-                                    "title": result.get("title", ""),
-                                },
-                            )
-                        )
-
         except Exception as e:
-            self.logger.warning(f"Brave Search error: {e}")
+            self.logger.warning(f"Tavily Search error: {e}")
 
         return results
 
