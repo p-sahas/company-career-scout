@@ -1,130 +1,62 @@
 # Company Career Scout
 
-AI-powered company reputation analysis tool built exclusively for Sri Lankan companies.
+Company Career Scout is an AI-powered, multi-source orchestration agent designed to scrape, aggregate, and analyze real-world employee and customer sentiment for companies in Sri Lanka. Instead of relying on a single highly-polished corporate PR page or a single review site, it utilizes a directed acyclic graph (DAG) architecture to autonomously crawl the internet and build a comprehensive, unfiltered intelligence report.
 
-Uses LangGraph and LangChain to orchestrate parallel web crawlers that aggregate public company data from 8 sources, then analyzes and presents structured insights via a Streamlit dashboard.
+## The Problem It Solves
 
----
+When researching a company for a potential job or partnership, it is often difficult to discover the actual work-life balance, management culture, or public reputation without spending hours digging through disparate Reddit threads, hidden Glassdoor reviews, and scattered news articles. Furthermore, many single-page Applicant Tracking Systems (ATS) mask active job openings from standard search engines. 
 
-## Architecture
+Company Career Scout solves this by automating the entire research phase. You provide a company name, and the AI agent instantly hunts down sentiment, active jobs, and crisis signals across the Sri Lankan tech and corporate ecosystem.
 
-```
-Input Validator → Parallel Crawlers (8 sources) → SL Validation Filter → LLM Analysis → Report Builder
-```
+## Key Product Features
 
-**LangGraph StateGraph** with 5 nodes:
-1. **Input Validator** — normalizes company name, resolves aliases, enriches queries
-2. **Parallel Crawlers** — async fan-out to Reddit, Google Maps, Glassdoor, SL Job Boards, LinkedIn, Facebook, SL News, General Web
-3. **SL Validation Filter** — enforces Sri Lanka geo-scoping + deduplication
-4. **Analysis Agent** — LLM-based sentiment, theme, severity classification per result
-5. **Report Builder** — assembles source-sorted structured report
+- **Automated Deep-Crawling:** The agent deploys parallel asynchronous crawlers to hit Reddit (r/srilanka, r/colombo), Glassdoor, Google Maps, Facebook, and local Sri Lankan job boards (Ikman, TopJobs, JobsNet).
+- **Headless ATS Extraction:** Uses headless Chromium (via Playwright) to bypass complex JavaScript redirects and scrape active job listings directly from corporate Applicant Tracking Systems like Workday, Greenhouse, and Lever.
+- **Strict Sri Lankan Geo-Fencing:** Built uniquely for the SL market. It verifies that Google results, news articles, and Reddit posts are contextually tied to Sri Lanka, filtering out international noise and false positives.
+- **Regulatory Crisis Detection:** The LLM evaluation chain explicitly scans all scraped internet chatter for mentions of the Inland Revenue Department (IRD) or the Securities and Exchange Commission (SEC), explicitly flagging them as "Crisis Signals" on the dashboard if a company is under public scrutiny.
+- **PDF Intelligence Reports:** Generates clean, downloadable FPDF reports detailing pros, cons, sentiment breakdowns, and an exhaustive list of clickable source URLs citing exactly where the AI pulled its data from.
 
----
+## Execution Workflow
 
-## Data Sources
+1. **Input:** The user types a company name (e.g., "WSO2", "Sysco Labs") into the Streamlit dashboard and selects an LLM backend (Groq or Gemini).
+2. **Relevance Filtering:** The Orchestrator strictly drops any search results that do not explicitly mention the company (filtering out irrelevant Reddit fallback queries).
+3. **Data Aggregation:** The agent normalizes and deduplicates the raw text from all successful crawlers.
+4. **LLM Synthesis:** The chosen LLM parses the massive context block, generating a cohesive 0-100 Trust Score, Top 5 Pros & Cons, and compartmentalized views (Employee vs. Customer vs. Press).
+5. **Review:** The user interacts with the final dashboard metrics and exports the findings to PDF.
 
-| Source | Method | Max Results |
-|--------|--------|-------------|
-| Reddit (r/srilanka, r/colombo, r/askSriLanka) | PRAW API | 30 posts + comments |
-| Google Maps | Playwright headless | 20 reviews |
-| Glassdoor / Indeed | Playwright + scraping | 40 reviews |
-| TopJobs / Ikman / JobsNet | httpx + BS4 | 30 listings |
-| LinkedIn | Google search proxy | 10 results |
-| Facebook | Google search proxy | 15 results |
-| SL News (dailymirror.lk, etc.) | httpx + BS4 | 20 articles |
-| General Web | Brave/SerpAPI/Google | 10 results |
+## System Architecture
 
----
+- **Frontend:** Streamlit dashboard utilizing asynchronous WebSockets for live pipeline tracking.
+- **Orchestration:** LangGraph state machine passing context between Validation, Crawling, and Analysis nodes.
+- **LLM Engine:** LangChain integrated with Gemini 2.5 Flash and Groq for high-speed, cost-effective natural language processing.
+- **Scraping Backbones:** `httpx`, `BeautifulSoup4`, `playwright`, and the `Tavily Search API`.
 
-## Multi-Model LLM Support
+## Installation and Execution
 
-| Provider | Model | Cost |
-|----------|-------|------|
-| Groq (default) | Llama 3.3 70B | Free |
-| Google Gemini | gemini-2.0-flash | Free |
-| Anthropic Claude | claude-haiku-4-5 | Free credits |
-| OpenAI | gpt-4o-mini | Paid |
+The project uses `uv` for lightning-fast virtual environment scaffolding. Make sure you have `uv`, `make`, and `python` installed.
 
-Switch models via the sidebar dropdown. API keys stored in session only.
-
----
-
-## Setup
-
-### 1. Clone and install
+1. Clone the repository.
+2. Copy `.env.example` to `.env` and fill in your API keys (Gemini, Groq, Tavily).
+3. Run the setup and pipeline:
 
 ```bash
-git clone <repo-url>
-cd company-career-scout
-pip install -r requirements.txt
-playwright install chromium
+make setup
+make run
 ```
 
-### 2. Configure API keys
+## Disclaimer and Legal Notice
 
-```bash
-cp .env.example .env
-# Edit .env with your API keys (at minimum, add GROQ_API_KEY)
-```
+**IMPORTANT: PLEASE READ BEFORE USING THIS SOFTWARE**
 
-Or enter keys directly in the Streamlit sidebar at runtime.
+This tool strictly serves as an automated data aggregator that collects publicly available information, opinions, and comments from third-party websites across the internet. 
 
-### 3. Run
+- **No Affiliation:** This project is entirely independent and is not affiliated with, endorsed by, or sponsored by any of the companies, brands, or entities that may be searched or analyzed.
+- **Subjective Output:** The "Trust Scores", "Pros/Cons", and "Crisis Flags" generated by the AI modules are derivative summaries of subjective user-generated internet comments. They do not represent the opinions of the author, and they do not constitute professional, financial, legal, or career advice.
+- **No Verification:** The software does not verify the factual accuracy of the reviews, Reddit comments, or news articles it scrapes. It simply reports what is publicly stated online.
+- **No Liability:** The author and contributors are not responsible or liable for any business decisions, reputational impact, or damages resulting from the use of this software or the reports it generates. 
 
-```bash
-streamlit run frontend/app.py
-```
-
----
-
-## Project Structure
-
-```
-agents/
-  orchestrator.py          # LangGraph StateGraph pipeline
-  analysis_agent.py        # LLM sentiment/theme classification
-  report_builder.py        # Source-sorted report assembly
-  crawlers/
-    base_crawler.py        # BaseCrawler + RawResult
-    reddit_crawler.py
-    google_maps_crawler.py
-    glassdoor_crawler.py
-    topjobs_crawler.py     # topjobs.lk, ikman.lk, jobsnet.lk
-    linkedin_crawler.py
-    facebook_crawler.py
-    news_crawler.py        # SL news sites
-    web_crawler.py         # Brave/SerpAPI fallback
-core/
-  model_router.py          # Multi-provider LLM switcher
-  sl_validator.py          # Sri Lanka validation + crisis detection
-  cache.py                 # SQLite cache (48h TTL)
-  deduplicator.py          # Sentence-transformer dedup
-frontend/
-  app.py                   # Streamlit main
-  sidebar.py               # Model selector UI
-  components/
-    source_tab.py          # Per-source result cards
-    score_gauge.py         # Plotly gauge + pie chart
-    export.py              # JSON/CSV/PDF export
-data/
-  company_aliases.json     # SL company alias mappings
-  demo_companies.json      # Pre-loaded demo companies
-```
-
----
-
-## Features
-
-- **Sri Lanka-only scoping**: every query, scrape, and result is validated for SL relevance
-- **48-hour intelligent caching**: SQLite-backed, re-scrape only when stale
-- **Sinhala/Tamil support**: language detection and translation
-- **Crisis detection**: flags mass layoffs, legal proceedings, financial distress, regulatory actions
-- **12 theme categories**: salary, WLB, management, product quality, and more
-- **Export**: JSON, CSV, PDF report download
-- **Token tracking**: per-run LLM usage logged to SQLite
-
----
+Use this tool responsibly and strictly for personal research and informational purposes.
 
 ## License
 
-MIT
+This project is licensed under the MIT License - see the LICENSE file for details.
