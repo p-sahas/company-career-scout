@@ -1,48 +1,45 @@
 """
-Reddit crawler using PRAW.
+Reddit crawler using Reddit's public JSON API.
+No authentication (PRAW) required — uses old.reddit.com/search.json endpoints.
 Searches r/srilanka, r/colombo, r/askSriLanka for company mentions.
 """
 
-import os
 import logging
 from datetime import datetime, timedelta
-from typing import Optional
 from .base_crawler import BaseCrawler, RawResult
 
 logger = logging.getLogger(__name__)
 
-SUBREDDITS = ["srilanka", "colombo", "askSriLanka"]
-MAX_COMMENTS_PER_POST = 5
-MAX_AGE_YEARS = 2
+# Import crawler settings from config
+try:
+    from config.settings import (
+        REDDIT_SUBREDDITS,
+        REDDIT_MAX_POSTS,
+        REDDIT_MAX_COMMENTS_PER_POST,
+        REDDIT_MAX_AGE_YEARS,
+        REDDIT_USER_AGENT,
+    )
+except ImportError:
+    REDDIT_SUBREDDITS = ["srilanka", "colombo", "askSriLanka"]
+    REDDIT_MAX_POSTS = 30
+    REDDIT_MAX_COMMENTS_PER_POST = 5
+    REDDIT_MAX_AGE_YEARS = 2
+    REDDIT_USER_AGENT = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/125.0.0.0 Safari/537.36"
+    )
 
 
 class RedditCrawler(BaseCrawler):
-    """Crawls Reddit for Sri Lanka-related company discussions."""
+    """Crawls Reddit for Sri Lanka-related company discussions using the public JSON API."""
 
-    def __init__(self, max_results: int = 30):
+    def __init__(self, max_results: int = REDDIT_MAX_POSTS):
         super().__init__(name="reddit", max_results=max_results)
-        self._reddit = None
-
-    def _get_reddit(self):
-        """Initialize PRAW Reddit instance."""
-        if self._reddit is None:
-            try:
-                import praw
-                self._reddit = praw.Reddit(
-                    client_id=os.environ.get("REDDIT_CLIENT_ID", ""),
-                    client_secret=os.environ.get("REDDIT_CLIENT_SECRET", ""),
-                    user_agent=os.environ.get(
-                        "REDDIT_USER_AGENT", "CompanyCareerScout/1.0"
-                    ),
-                )
-            except Exception as e:
-                self.logger.error(f"Failed to initialize PRAW: {e}")
-                raise
-        return self._reddit
 
     async def crawl(self, query: str, company: str) -> list[RawResult]:
         """
-        Search Reddit for company mentions.
+        Search Reddit via public JSON API (no auth needed).
 
         Args:
             query: Search query (e.g. "WSO2 Sri Lanka").
@@ -52,94 +49,94 @@ class RedditCrawler(BaseCrawler):
             List of RawResult objects from Reddit.
         """
         results = []
-        cutoff_date = datetime.now() - timedelta(days=MAX_AGE_YEARS * 365)
+        cutoff_date = datetime.now() - timedelta(days=REDDIT_MAX_AGE_YEARS * 365)
 
         try:
-            reddit = self._get_reddit()
-        except Exception as e:
-            self.logger.warning(f"Reddit unavailable: {e}")
-            return results
+            import httpx
 
-        try:
-            for subreddit_name in SUBREDDITS:
-                if len(results) >= self.max_results:
-                    break
+            async with httpx.AsyncClient(
+                timeout=30,
+                follow_redirects=True,
+                headers={"User-Agent": REDDIT_USER_AGENT},
+            ) as client:
+                for subreddit_name in REDDIT_SUBREDDITS:
+                    if len(results) >= self.max_results:
+                        break
 
-                try:
-                    subreddit = reddit.subreddit(subreddit_name)
-                    search_results = subreddit.search(
-                        query, sort="relevance", time_filter="all", limit=15
-                    )
+                    try:
+                        # Use old.reddit.com JSON search endpoint
+                        search_url = (
+                            f"https://old.reddit.com/r/{subreddit_name}/search.json"
+                        )
+                        params = {
+                            "q": query,
+                            "sort": "relevance",
+                            "t": "all",
+                            "limit": 15,
+                            "restrict_sr": "on",
+                        }
 
-                    for post in search_results:
-                        if len(results) >= self.max_results:
-                            break
+                        response = await client.get(search_url, params=params)
 
-                        # Check age
-                        post_date = datetime.fromtimestamp(post.created_utc)
-                        if post_date < cutoff_date:
+                        if response.status_code != 200:
+                            self.logger.warning(
+                                f"Reddit search returned {response.status_code} "
+                                f"for r/{subreddit_name}"
+                            )
                             continue
 
-                        # Add the post itself
-                        post_text = f"{post.title}\n\n{post.selftext}" if post.selftext else post.title
-                        results.append(
-                            RawResult(
-                                source_platform="reddit",
-                                source_url=f"https://reddit.com{post.permalink}",
-                                raw_text=self._safe_text(post_text),
-                                date=self._format_date(post.created_utc),
-                                rating=None,
-                                reviewer_type="general",
-                                metadata={
-                                    "subreddit": subreddit_name,
-                                    "score": post.score,
-                                    "num_comments": post.num_comments,
-                                    "type": "post",
-                                },
-                            )
-                        )
+                        data = response.json()
+                        posts = data.get("data", {}).get("children", [])
 
-                        # Add top comments
-                        try:
-                            post.comments.replace_more(limit=0)
-                            top_comments = sorted(
-                                post.comments.list(),
-                                key=lambda c: c.score,
-                                reverse=True,
-                            )[:MAX_COMMENTS_PER_POST]
+                        for post_wrapper in posts:
+                            if len(results) >= self.max_results:
+                                break
 
-                            for comment in top_comments:
-                                if len(results) >= self.max_results:
-                                    break
-                                if not comment.body or comment.body == "[deleted]":
-                                    continue
+                            post = post_wrapper.get("data", {})
 
-                                results.append(
-                                    RawResult(
-                                        source_platform="reddit",
-                                        source_url=f"https://reddit.com{comment.permalink}",
-                                        raw_text=self._safe_text(comment.body),
-                                        date=self._format_date(comment.created_utc),
-                                        rating=None,
-                                        reviewer_type="general",
-                                        metadata={
-                                            "subreddit": subreddit_name,
-                                            "score": comment.score,
-                                            "type": "comment",
-                                            "parent_post": post.title,
-                                        },
-                                    )
+                            # Check age
+                            created_utc = post.get("created_utc", 0)
+                            post_date = datetime.fromtimestamp(created_utc)
+                            if post_date < cutoff_date:
+                                continue
+
+                            # Build post text
+                            title = post.get("title", "")
+                            selftext = post.get("selftext", "")
+                            post_text = f"{title}\n\n{selftext}" if selftext else title
+
+                            permalink = post.get("permalink", "")
+                            post_url = f"https://reddit.com{permalink}"
+
+                            results.append(
+                                RawResult(
+                                    source_platform="reddit",
+                                    source_url=post_url,
+                                    raw_text=self._safe_text(post_text),
+                                    date=self._format_date(created_utc),
+                                    rating=None,
+                                    reviewer_type="general",
+                                    metadata={
+                                        "subreddit": subreddit_name,
+                                        "score": post.get("score", 0),
+                                        "num_comments": post.get("num_comments", 0),
+                                        "type": "post",
+                                    },
                                 )
-                        except Exception as e:
-                            self.logger.warning(
-                                f"Error fetching comments for post {post.id}: {e}"
                             )
 
-                except Exception as e:
-                    self.logger.warning(
-                        f"Error searching r/{subreddit_name}: {e}"
-                    )
-                    continue
+                            # Fetch top comments for this post
+                            if permalink:
+                                comment_results = await self._fetch_comments(
+                                    client, permalink, subreddit_name, title
+                                )
+                                results.extend(comment_results)
+
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Error searching r/{subreddit_name}: {e}"
+                        )
+                        continue
 
         except Exception as e:
             self.logger.error(f"Reddit crawl error: {e}")
@@ -148,3 +145,62 @@ class RedditCrawler(BaseCrawler):
             f"Reddit crawler found {len(results)} results for '{company}'"
         )
         return results
+
+    async def _fetch_comments(
+        self,
+        client,
+        permalink: str,
+        subreddit: str,
+        parent_title: str,
+    ) -> list[RawResult]:
+        """Fetch top comments for a post via JSON API."""
+        comments = []
+
+        try:
+            comment_url = f"https://old.reddit.com{permalink}.json"
+            params = {"sort": "top", "limit": REDDIT_MAX_COMMENTS_PER_POST}
+
+            response = await client.get(comment_url, params=params)
+
+            if response.status_code != 200:
+                return comments
+
+            data = response.json()
+
+            # Reddit returns [post_listing, comment_listing]
+            if len(data) < 2:
+                return comments
+
+            comment_children = data[1].get("data", {}).get("children", [])
+
+            for comment_wrapper in comment_children[:REDDIT_MAX_COMMENTS_PER_POST]:
+                comment = comment_wrapper.get("data", {})
+                body = comment.get("body", "")
+
+                if not body or body == "[deleted]" or body == "[removed]":
+                    continue
+
+                comment_permalink = comment.get("permalink", "")
+                comment_url_full = f"https://reddit.com{comment_permalink}" if comment_permalink else ""
+
+                comments.append(
+                    RawResult(
+                        source_platform="reddit",
+                        source_url=comment_url_full,
+                        raw_text=self._safe_text(body),
+                        date=self._format_date(comment.get("created_utc", 0)),
+                        rating=None,
+                        reviewer_type="general",
+                        metadata={
+                            "subreddit": subreddit,
+                            "score": comment.get("score", 0),
+                            "type": "comment",
+                            "parent_post": parent_title,
+                        },
+                    )
+                )
+
+        except Exception as e:
+            self.logger.warning(f"Error fetching comments: {e}")
+
+        return comments
