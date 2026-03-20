@@ -125,9 +125,13 @@ class TopJobsCrawler(BaseCrawler):
                         class_=re.compile(r"card|listing|item|ad", re.I),
                     )
 
-                    for card in cards[: self.max_results // 3]:
+                    for card in cards[: self.max_results]:
                         text = card.get_text(strip=True)
                         if not text or len(text) < 10:
+                            continue
+                            
+                        ignore_phrases = ["we did not find any result", "back to ikman", "no ads found", "0 ads"]
+                        if any(p in text.lower() for p in ignore_phrases):
                             continue
 
                         link = card.find("a", href=True)
@@ -191,9 +195,13 @@ class TopJobsCrawler(BaseCrawler):
                         class_=re.compile(r"job|listing|vacancy", re.I),
                     )
 
-                    for item in job_items[: self.max_results // 3]:
+                    for item in job_items[: self.max_results]:
                         text = item.get_text(strip=True)
                         if not text or len(text) < 10:
+                            continue
+                            
+                        ignore_phrases = ["no vacancies found", "0 results"]
+                        if any(p in text.lower() for p in ignore_phrases):
                             continue
 
                         results.append(

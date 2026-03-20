@@ -170,8 +170,13 @@ for i, demo in enumerate(demo_companies):
         if st.button(demo["name"], key=f"demo_{i}", use_container_width=True):
             demo_selected = demo["name"]
 
-# Determine which company to search
-search_company = demo_selected or (company_input if scout_clicked else None)
+# Persist active search in session state to handle Streamlit re-runs
+if scout_clicked and company_input:
+    st.session_state["active_company"] = company_input
+elif demo_selected:
+    st.session_state["active_company"] = demo_selected
+
+search_company = st.session_state.get("active_company")
 
 
 # --- Run Pipeline ---
@@ -189,12 +194,6 @@ if search_company:
         if cached_report:
             st.info(":file_cabinet: **Using cached results.** Click 'Clear Cache' in the sidebar to refresh.")
             report = cached_report
-            analyzed_results = []  # We don't cache individual results separately
-
-            # Try to reconstruct analyzed results from report
-            for source_data in report.get("by_source", {}).values():
-                # This is a simplification — in production we'd cache them too
-                pass
         else:
             # Run the full pipeline
             progress = st.progress(0, text="Initializing...")
@@ -240,6 +239,7 @@ if search_company:
         if report and isinstance(report, dict) and report.get("company"):
             # Store report in session state
             st.session_state["current_report"] = report
+            st.session_state["analyzed_results"] = report.get("analyzed_results", [])
 
             by_source = report.get("by_source", {})
             summary = report.get("aggregated_summary", {})

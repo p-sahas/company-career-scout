@@ -90,7 +90,7 @@ class GlassdoorCrawler(BaseCrawler):
                     review_blocks = page.locator(
                         '[class*="review"], [data-test="review"]'
                     )
-                    count = min(await review_blocks.count(), 20)
+                    count = min(await review_blocks.count(), 40)
 
                     for i in range(count):
                         try:
@@ -160,7 +160,7 @@ class GlassdoorCrawler(BaseCrawler):
                     review_blocks = page.locator(
                         '[data-testid="review"], [class*="review-container"]'
                     )
-                    count = min(await review_blocks.count(), 20)
+                    count = min(await review_blocks.count(), 40)
 
                     for i in range(count):
                         try:

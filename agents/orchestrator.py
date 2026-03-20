@@ -168,13 +168,24 @@ def sl_validation_filter(state: ScoutState) -> dict:
     raw_results = state.get("raw_results", [])
     validated = []
     discarded = 0
+    company = state.get("company", "")
+
+    from core.sl_validator import mentions_company
 
     for result in raw_results:
         text = result.get("raw_text", "")
         url = result.get("source_url", "")
         platform = result.get("source_platform", "")
 
-        # SL-native platforms always pass
+        # Strict relevance check: must mention company OR be from native SL job board
+        if not mentions_company(text, company) and not url.lower().endswith(tuple(COMPANY_ALIASES.keys())):
+            # Wait, URL might not have alias. Just check text.
+            if not mentions_company(text, company) and not mentions_company(url, company):
+                discarded += 1
+                logger.debug(f"Discarded irrelevant result from {platform}: {url[:50]}")
+                continue
+
+        # SL-native platforms always pass geo-check
         if platform in ("topjobs",):
             validated.append(result)
             continue

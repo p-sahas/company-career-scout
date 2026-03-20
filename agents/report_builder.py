@@ -104,6 +104,7 @@ class ReportBuilder:
             "model_used": model_used,
             "overall_score": overall_score,
             "total_results": len(analyzed_results),
+            "analyzed_results": analyzed_results,
             "by_source": source_reports,
             "aggregated_summary": {
                 "what_employees_say": summary.get(

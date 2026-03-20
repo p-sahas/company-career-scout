@@ -230,8 +230,6 @@ def _render_result_card(result: dict, key: str) -> None:
 
         # Text content
         text = result.get("raw_text", "")
-        if len(text) > 300:
-            text = text[:300] + "..."
         st.markdown(f">{text}")
 
         # Themes as pills

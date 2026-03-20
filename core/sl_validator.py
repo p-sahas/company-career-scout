@@ -103,6 +103,20 @@ def normalize_company_name(name: str) -> str:
     return name.title()
 
 
+def mentions_company(text: str, company: str) -> bool:
+    """Check if text mentions the company or its known aliases to prevent irrelevant fallback results."""
+    text_lower = text.lower()
+    if company.lower() in text_lower:
+        return True
+        
+    # Check aliases
+    for alias, full_name in COMPANY_ALIASES.items():
+        if full_name.lower() == company.lower() and alias.lower() in text_lower:
+            return True
+            
+    return False
+
+
 def enrich_query(company: str, platform: str = "general") -> str:
     """
     Append Sri Lanka geo-restriction strings to a query

@@ -89,7 +89,7 @@ def _generate_csv(results: list) -> str:
             r.get("severity", ""),
             r.get("language_detected", ""),
             r.get("date", ""),
-            r.get("raw_text", "")[:200],
+            r.get("raw_text", ""),
         ])
 
     return output.getvalue()
@@ -210,7 +210,7 @@ def _generate_pdf(report: dict) -> bytes:
             )
         pdf.ln(2)
 
-    return pdf.output()
+    return bytes(pdf.output())
 
 
 def _safe_pdf_text(text: str) -> str:
