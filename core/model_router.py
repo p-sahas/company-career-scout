@@ -1,6 +1,7 @@
 """
 Multi-provider LLM router using LangChain.
 Supports Groq, Google Gemini, Anthropic Claude, and OpenAI.
+All model/provider config imported from config.settings.
 """
 
 import time
@@ -8,24 +9,31 @@ from typing import Optional
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.language_models import BaseChatModel
 
-# Provider-specific imports (lazy-loaded)
-_PROVIDER_CLASSES = {
-    "groq": ("langchain_groq", "ChatGroq"),
-    "google": ("langchain_google_genai", "ChatGoogleGenerativeAI"),
-    "anthropic": ("langchain_anthropic", "ChatAnthropic"),
-    "openai": ("langchain_openai", "ChatOpenAI"),
-}
+# Import from centralized config
+try:
+    from config.settings import (
+        DEFAULT_MODELS,
+        PROVIDER_CLASSES as _PROVIDER_CLASSES,
+        FREE_TIER_PROVIDERS,
+        DEFAULT_TEMPERATURE,
+    )
+except ImportError:
+    # Fallback if config not available
+    DEFAULT_MODELS = {
+        "groq": "llama-3.3-70b-versatile",
+        "google": "gemini-2.5-flash",
+        "anthropic": "claude-haiku-4-5-20250315",
+        "openai": "gpt-4o-mini",
+    }
+    _PROVIDER_CLASSES = {
+        "groq": ("langchain_groq", "ChatGroq"),
+        "google": ("langchain_google_genai", "ChatGoogleGenerativeAI"),
+        "anthropic": ("langchain_anthropic", "ChatAnthropic"),
+        "openai": ("langchain_openai", "ChatOpenAI"),
+    }
+    FREE_TIER_PROVIDERS = {"groq", "google"}
+    DEFAULT_TEMPERATURE = 0.1
 
-# Default models per provider
-DEFAULT_MODELS = {
-    "groq": "llama-3.3-70b-versatile",
-    "google": "gemini-2.0-flash",
-    "anthropic": "claude-haiku-4-5-20250315",
-    "openai": "gpt-4o-mini",
-}
-
-# Free tier info
-FREE_TIER_PROVIDERS = {"groq", "google"}
 
 # Classification prompt template
 CLASSIFY_SYSTEM_PROMPT = """You are an expert analyst classifying company reviews and mentions from Sri Lanka.
@@ -68,17 +76,8 @@ class ModelRouter:
         provider: str,
         api_key: str,
         model_name: Optional[str] = None,
-        temperature: float = 0.1,
+        temperature: float = DEFAULT_TEMPERATURE,
     ):
-        """
-        Initialize the model router.
-
-        Args:
-            provider: One of 'groq', 'google', 'anthropic', 'openai'.
-            api_key: API key for the provider.
-            model_name: Optional model override. Uses default for provider if None.
-            temperature: LLM temperature setting.
-        """
         self.provider = provider.lower()
         self.api_key = api_key
         self.model_name = model_name or DEFAULT_MODELS.get(self.provider, "")
@@ -109,7 +108,6 @@ class ModelRouter:
                 kwargs["groq_api_key"] = self.api_key
             elif self.provider == "google":
                 kwargs["google_api_key"] = self.api_key
-                kwargs["model"] = self.model_name
             elif self.provider == "anthropic":
                 kwargs["anthropic_api_key"] = self.api_key
             elif self.provider == "openai":
@@ -120,16 +118,6 @@ class ModelRouter:
         return self._llm
 
     def _invoke(self, system_prompt: str, user_prompt: str) -> str:
-        """
-        Invoke the LLM with system and user messages.
-
-        Args:
-            system_prompt: System message content.
-            user_prompt: User message content.
-
-        Returns:
-            The LLM response text.
-        """
         llm = self._get_llm()
         messages = [
             SystemMessage(content=system_prompt),
@@ -140,33 +128,21 @@ class ModelRouter:
         response = llm.invoke(messages)
         elapsed = time.time() - start_time
 
-        # Track token usage if available
         if hasattr(response, "usage_metadata") and response.usage_metadata:
             usage = response.usage_metadata
             tokens = getattr(usage, "total_tokens", 0) or 0
             self.total_tokens_used += tokens
 
         self.total_calls += 1
-
         return response.content
 
     def classify(self, text: str) -> dict:
-        """
-        Classify a single review/mention.
-
-        Args:
-            text: The review or mention text to classify.
-
-        Returns:
-            Classification dict with sentiment, themes, severity, etc.
-        """
         import json
 
-        user_prompt = f"Classify this text:\n\n{text[:2000]}"  # Limit input size
+        user_prompt = f"Classify this text:\n\n{text[:2000]}"
 
         try:
             result = self._invoke(CLASSIFY_SYSTEM_PROMPT, user_prompt)
-            # Clean potential markdown fences
             result = result.strip()
             if result.startswith("```"):
                 result = result.split("\n", 1)[1] if "\n" in result else result
@@ -187,20 +163,10 @@ class ModelRouter:
             }
 
     def summarize(self, reviews_data: list) -> dict:
-        """
-        Generate an aggregated summary from classified reviews.
-
-        Args:
-            reviews_data: List of classified review dicts.
-
-        Returns:
-            Summary dict with employee/customer/press views, pros, cons, etc.
-        """
         import json
 
-        # Build a condensed representation for the LLM
         condensed = []
-        for i, review in enumerate(reviews_data[:100]):  # Cap at 100
+        for i, review in enumerate(reviews_data[:100]):
             condensed.append(
                 f"[{i+1}] Source: {review.get('source_platform', 'unknown')} | "
                 f"Sentiment: {review.get('sentiment', 'unknown')} | "
@@ -238,11 +204,9 @@ class ModelRouter:
             }
 
     def supports_free_tier(self) -> bool:
-        """Check if the current provider offers a free tier."""
         return self.provider in FREE_TIER_PROVIDERS
 
     def get_usage_stats(self) -> dict:
-        """Get current usage statistics."""
         return {
             "provider": self.provider,
             "model": self.model_name,
@@ -252,7 +216,6 @@ class ModelRouter:
         }
 
     def get_display_name(self) -> str:
-        """Get a human-readable name for the current model."""
         provider_names = {
             "groq": "Groq",
             "google": "Google Gemini",

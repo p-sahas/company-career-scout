@@ -205,8 +205,13 @@ if search_company:
                 # Run with progress updates
                 progress.progress(10, text="Validating input...")
 
+                # Fix Windows asyncio loop policy for Playwright subprocesses
+                if sys.platform == "win32":
+                    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
                 # Use asyncio to run the async pipeline
                 loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
 
                 progress.progress(20, text="Crawling sources (this may take a minute)...")
 
@@ -272,11 +277,11 @@ if search_company:
                 crisis_flags = summary.get("crisis_flags", [])
                 if crisis_flags:
                     crisis_html = "".join(
-                        f"<p>:warning: {flag}</p>" for flag in crisis_flags
+                        f"<p>⚠️ {flag}</p>" for flag in crisis_flags
                     )
                     st.markdown(
                         f'<div class="crisis-banner">'
-                        f"<h4>:rotating_light: Crisis Flags Detected</h4>"
+                        f"<h4>🚨 Crisis Flags Detected</h4>"
                         f"{crisis_html}</div>",
                         unsafe_allow_html=True,
                     )

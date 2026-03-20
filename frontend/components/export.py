@@ -108,61 +108,61 @@ def _generate_pdf(report: dict) -> bytes:
 
     # Title
     pdf.set_font("Helvetica", "B", 20)
-    pdf.cell(0, 15, "Company Career Scout Report", ln=True, align="C")
+    pdf.cell(0, 15, _safe_pdf_text("Company Career Scout Report"), ln=True, align="C")
     pdf.ln(5)
 
     # Company info
     pdf.set_font("Helvetica", "B", 14)
     company = report.get("company", "Unknown")
-    pdf.cell(0, 10, f"Company: {company}", ln=True)
+    pdf.cell(0, 10, _safe_pdf_text(f"Company: {company}"), ln=True)
 
     pdf.set_font("Helvetica", "", 10)
-    pdf.cell(0, 6, f"Generated: {report.get('generated_at', '')}", ln=True)
-    pdf.cell(0, 6, f"Model: {report.get('model_used', '')}", ln=True)
-    pdf.cell(0, 6, f"Total Results: {report.get('total_results', 0)}", ln=True)
+    pdf.cell(0, 6, _safe_pdf_text(f"Generated: {report.get('generated_at', '')}"), ln=True)
+    pdf.cell(0, 6, _safe_pdf_text(f"Model: {report.get('model_used', '')}"), ln=True)
+    pdf.cell(0, 6, _safe_pdf_text(f"Total Results: {report.get('total_results', 0)}"), ln=True)
     pdf.ln(5)
 
     # Overall Score
     score = report.get("overall_score", 0)
     pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 10, f"Overall Score: {score}/100", ln=True)
+    pdf.cell(0, 10, _safe_pdf_text(f"Overall Score: {score}/100"), ln=True)
     pdf.ln(5)
 
     # Summary
     summary = report.get("aggregated_summary", {})
 
     pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 8, "What Employees Say:", ln=True)
+    pdf.cell(0, 8, _safe_pdf_text("What Employees Say:"), ln=True)
     pdf.set_font("Helvetica", "", 10)
     _pdf_multi_cell(pdf, summary.get("what_employees_say", "N/A"))
     pdf.ln(3)
 
     pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 8, "What Customers Say:", ln=True)
+    pdf.cell(0, 8, _safe_pdf_text("What Customers Say:"), ln=True)
     pdf.set_font("Helvetica", "", 10)
     _pdf_multi_cell(pdf, summary.get("what_customers_say", "N/A"))
     pdf.ln(3)
 
     pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 8, "What Press Says:", ln=True)
+    pdf.cell(0, 8, _safe_pdf_text("What Press Says:"), ln=True)
     pdf.set_font("Helvetica", "", 10)
     _pdf_multi_cell(pdf, summary.get("what_press_says", "N/A"))
     pdf.ln(5)
 
     # Pros
     pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 8, "Top Pros:", ln=True)
+    pdf.cell(0, 8, _safe_pdf_text("Top Pros:"), ln=True)
     pdf.set_font("Helvetica", "", 10)
     for pro in summary.get("top_5_pros", []):
-        pdf.cell(0, 6, f"  + {pro}", ln=True)
+        pdf.cell(0, 6, _safe_pdf_text(f"  + {pro}"), ln=True)
     pdf.ln(3)
 
     # Cons
     pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 8, "Top Cons:", ln=True)
+    pdf.cell(0, 8, _safe_pdf_text("Top Cons:"), ln=True)
     pdf.set_font("Helvetica", "", 10)
     for con in summary.get("top_5_cons", []):
-        pdf.cell(0, 6, f"  - {con}", ln=True)
+        pdf.cell(0, 6, _safe_pdf_text(f"  - {con}"), ln=True)
     pdf.ln(3)
 
     # Crisis flags
@@ -170,23 +170,23 @@ def _generate_pdf(report: dict) -> bytes:
     if crisis:
         pdf.set_font("Helvetica", "B", 12)
         pdf.set_text_color(220, 38, 38)
-        pdf.cell(0, 8, "CRISIS FLAGS:", ln=True)
+        pdf.cell(0, 8, _safe_pdf_text("CRISIS FLAGS:"), ln=True)
         pdf.set_font("Helvetica", "", 10)
         for flag in crisis:
-            pdf.cell(0, 6, f"  ! {flag}", ln=True)
+            pdf.cell(0, 6, _safe_pdf_text(f"  ! {flag}"), ln=True)
         pdf.set_text_color(0, 0, 0)
         pdf.ln(3)
 
     # Recommendation
     pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 8, "Recommendation:", ln=True)
+    pdf.cell(0, 8, _safe_pdf_text("Recommendation:"), ln=True)
     pdf.set_font("Helvetica", "", 10)
     _pdf_multi_cell(pdf, summary.get("recommendation", "N/A"))
 
     # Source breakdown
     pdf.add_page()
     pdf.set_font("Helvetica", "B", 14)
-    pdf.cell(0, 10, "Results by Source", ln=True)
+    pdf.cell(0, 10, _safe_pdf_text("Results by Source"), ln=True)
     pdf.ln(3)
 
     by_source = report.get("by_source", {})
@@ -194,16 +194,18 @@ def _generate_pdf(report: dict) -> bytes:
         platform = source_data.get("platform", source_key)
         count = source_data.get("result_count", 0)
         pdf.set_font("Helvetica", "B", 11)
-        pdf.cell(0, 7, f"{platform}: {count} results", ln=True)
+        pdf.cell(0, 7, _safe_pdf_text(f"{platform}: {count} results"), ln=True)
 
         sentiment = source_data.get("sentiment_breakdown", {})
         if sentiment:
             pdf.set_font("Helvetica", "", 9)
             pdf.cell(
                 0, 5,
-                f"  Positive: {sentiment.get('positive', 0)} | "
-                f"Neutral: {sentiment.get('neutral', 0)} | "
-                f"Negative: {sentiment.get('negative', 0)}",
+                _safe_pdf_text(
+                    f"  Positive: {sentiment.get('positive', 0)} | "
+                    f"Neutral: {sentiment.get('neutral', 0)} | "
+                    f"Negative: {sentiment.get('negative', 0)}"
+                ),
                 ln=True,
             )
         pdf.ln(2)
@@ -211,11 +213,29 @@ def _generate_pdf(report: dict) -> bytes:
     return pdf.output()
 
 
+def _safe_pdf_text(text: str) -> str:
+    """Replace problematic unicode characters with ASCII equivalents for PDF generation."""
+    if not isinstance(text, str):
+        text = str(text)
+    replacements = {
+        "—": "-",
+        "–": "-",
+        "‘": "'",
+        "’": "'",
+        "“": '"',
+        "”": '"',
+        "…": "...",
+        "\u200b": "",
+    }
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    return text.encode("latin-1", errors="replace").decode("latin-1")
+
+
 def _pdf_multi_cell(pdf, text: str, width: int = 0, height: int = 6):
     """Write multi-line text to PDF, handling encoding."""
     try:
-        # Replace problematic characters
-        safe_text = text.encode("latin-1", errors="replace").decode("latin-1")
+        safe_text = _safe_pdf_text(text)
         pdf.multi_cell(width, height, safe_text)
     except Exception:
         pdf.multi_cell(width, height, "Text could not be rendered.")
