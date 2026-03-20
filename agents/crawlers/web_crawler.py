@@ -33,14 +33,8 @@ class WebCrawler(BaseCrawler):
         # Try Tavily Search API first
         tavily_key = os.environ.get("TAVILY_API_KEY")
         if tavily_key:
-            # 1. Main web search
             tavily_results = await self._tavily_search(query, tavily_key)
             results.extend(tavily_results)
-            
-            # 2. Official Careers page search
-            careers_query = f"{company} official careers jobs Sri Lanka"
-            careers_results = await self._tavily_search(careers_query, tavily_key, is_careers=True)
-            results.extend(careers_results)
 
         # Try SerpAPI if Brave didn't work
         if not results:
@@ -60,7 +54,7 @@ class WebCrawler(BaseCrawler):
         return results[: self.max_results]
 
     async def _tavily_search(
-        self, query: str, api_key: str, is_careers: bool = False
+        self, query: str, api_key: str
     ) -> list[RawResult]:
         """Search using Tavily Search API."""
         results = []
@@ -71,16 +65,12 @@ class WebCrawler(BaseCrawler):
             client = TavilyClient(api_key=api_key)
             response = client.search(
                 query=query,
-                max_results=3 if is_careers else self.max_results,
+                max_results=self.max_results,
                 search_depth="basic",
                 include_answer=False,
             )
 
             for result in response.get("results", []):
-                
-                # Tag careers results appropriately
-                reviewer_type = "job_seeker" if is_careers else "general"
-                
                 results.append(
                     RawResult(
                         source_platform="web",
@@ -89,9 +79,9 @@ class WebCrawler(BaseCrawler):
                             f"{result.get('title', '')}\n\n"
                             f"{result.get('content', '')}"
                         ),
-                        reviewer_type=reviewer_type,
+                        reviewer_type="general",
                         metadata={
-                            "type": "web_result" if not is_careers else "company_careers_page",
+                            "type": "web_result",
                             "search_engine": "tavily",
                             "title": result.get("title", ""),
                             "score": result.get("score"),

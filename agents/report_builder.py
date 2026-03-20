@@ -274,7 +274,7 @@ class ReportBuilder:
             trend = "none"
 
         return {
-            "platform": "SL Job Boards (TopJobs, Ikman, JobsNet)",
+            "platform": "Job Boards & Official Careers",
             "active_job_count": job_count,
             "salary_range_lkr": salary_ranges[0] if salary_ranges else None,
             "all_salary_info": salary_ranges,

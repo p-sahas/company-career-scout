@@ -40,6 +40,9 @@ class TopJobsCrawler(BaseCrawler):
         jobsnet_results = await self._crawl_jobsnet(company)
         results.extend(jobsnet_results)
 
+        official_careers = await self._crawl_official_careers(company)
+        results.extend(official_careers)
+
         self.logger.info(
             f"SL Job Boards crawler found {len(results)} results for '{company}'"
         )
@@ -220,4 +223,101 @@ class TopJobsCrawler(BaseCrawler):
         except Exception as e:
             self.logger.warning(f"jobsnet.lk crawl error: {e}")
 
+        return results
+
+    async def _crawl_official_careers(self, company: str) -> list[RawResult]:
+        """Crawl official careers page and chase ATS redirects."""
+        import os
+        results = []
+        tavily_key = os.environ.get("TAVILY_API_KEY")
+        if not tavily_key:
+            return results
+            
+        try:
+            from tavily import TavilyClient
+            client = TavilyClient(api_key=tavily_key)
+            response = client.search(
+                query=f"{company} official careers jobs Sri Lanka",
+                max_results=1,
+                search_depth="basic"
+            )
+            
+            if not response.get("results"):
+                return results
+                
+            base_url = response["results"][0]["url"]
+            
+            # Use Playwright to dig deeper
+            from playwright.async_api import async_playwright
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(headless=True)
+                page = await browser.new_page()
+                
+                try:
+                    await page.goto(base_url, wait_until="networkidle", timeout=30000)
+                    await page.wait_for_timeout(2000)
+                    
+                    # Look for ATS links
+                    ats_domains = [
+                        "workday", "myworkdaysite.com", "greenhouse.io", "lever.co", 
+                        "smartrecruiters", "bamboohr", "taleo", "icims", "ashbyhq", "workable"
+                    ]
+                    
+                    # Evaluate all hrefs on the page
+                    hrefs = await page.evaluate('''() => {
+                        return Array.from(document.querySelectorAll('a')).map(a => ({text: a.innerText, href: a.href}));
+                    }''')
+                    
+                    target_url = base_url
+                    for link in hrefs:
+                        href = link.get("href", "")
+                        if not href: continue
+                        href_lower = href.lower()
+                        text_lower = link.get("text", "").lower()
+                        
+                        # Match ATS domains explicitly
+                        if any(ats in href_lower for ats in ats_domains):
+                            if href_lower.startswith("http"):
+                                target_url = link["href"]
+                                break
+                                
+                        # Fallback heuristic: keyword matching
+                        if any(kw in text_lower for kw in ["explore", "view jobs", "openings", "search jobs"]):
+                            if href_lower.startswith("http") and "linkedin.com" not in href_lower:
+                                target_url = link["href"]
+                                
+                    # If we found a redirect target, go there
+                    if target_url != base_url:
+                        self.logger.info(f"Following careers ATS redirect from {base_url} to {target_url}")
+                        try:
+                            await page.goto(target_url, wait_until="networkidle", timeout=30000)
+                            await page.wait_for_timeout(2000) # wait for SPA ATS to render
+                        except Exception as e:
+                            self.logger.warning(f"Failed to follow careers redirect to {target_url}: {e}")
+                            
+                    # Extract page text
+                    text_content = await page.evaluate("document.body.innerText")
+                    
+                    if text_content and len(text_content) > 50:
+                        results.append(
+                            RawResult(
+                                source_platform="topjobs",
+                                source_url=target_url,
+                                raw_text=self._safe_text(text_content),
+                                reviewer_type="job_seeker",
+                                metadata={
+                                    "type": "job_listing",
+                                    "source_site": "official_careers",
+                                }
+                            )
+                        )
+                    
+                except Exception as e:
+                    self.logger.warning(f"Careers page playwright error: {e}")
+                finally:
+                    await browser.close()
+                    
+        except Exception as e:
+            self.logger.warning(f"Careers extraction error: {e}")
+            
         return results
