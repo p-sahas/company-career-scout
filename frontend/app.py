@@ -369,7 +369,7 @@ elif not search_company:
         st.markdown(
             """
             <div class="status-card">
-                <h3>:earth_asia: Sri Lanka Focused</h3>
+                <h3>🌍 Sri Lanka Focused</h3>
                 <p style="color: #94a3b8;">Every search is geo-scoped to Sri Lanka.
                 Only verified SL data makes it to your report.</p>
             </div>
@@ -381,7 +381,7 @@ elif not search_company:
         st.markdown(
             """
             <div class="status-card">
-                <h3>:robot_face: Multi-Source AI</h3>
+                <h3>🤖 Multi-Source AI</h3>
                 <p style="color: #94a3b8;">Crawls Reddit, Google Maps, Glassdoor,
                 LinkedIn, Facebook, SL news, and more.</p>
             </div>
@@ -393,7 +393,7 @@ elif not search_company:
         st.markdown(
             """
             <div class="status-card">
-                <h3>:zap: Cost Effective</h3>
+                <h3>⚡ Cost Effective</h3>
                 <p style="color: #94a3b8;">Uses free-tier LLMs by default (Groq, Gemini).
                 Results cached for 48 hours.</p>
             </div>

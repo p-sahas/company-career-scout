@@ -170,7 +170,7 @@ def sl_validation_filter(state: ScoutState) -> dict:
     discarded = 0
     company = state.get("company", "")
 
-    from core.sl_validator import mentions_company
+    from core.sl_validator import mentions_company, COMPANY_ALIASES
 
     for result in raw_results:
         text = result.get("raw_text", "")
