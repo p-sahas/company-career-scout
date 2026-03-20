@@ -28,7 +28,7 @@ Company Career Scout solves this by automating the entire research phase. You pr
 
 - **Frontend:** Streamlit dashboard utilizing asynchronous WebSockets for live pipeline tracking.
 - **Orchestration:** LangGraph state machine passing context between Validation, Crawling, and Analysis nodes.
-- **LLM Engine:** LangChain integrated with Gemini 2.5 Flash and Groq for high-speed, cost-effective natural language processing.
+- **LLM Engine:** LangChain integrated Groq(Llama 3.3 70B), Google Gemini(gemini-2.5-flash), Anthropic Claude(claude-haiku-4-5) and OpenAI(gpt-4o-mini) for high-speed, cost-effective natural language processing.
 - **Scraping Backbones:** `httpx`, `BeautifulSoup4`, `playwright`, and the `Tavily Search API`.
 
 ## Installation and Execution
@@ -43,6 +43,8 @@ The project uses `uv` for lightning-fast virtual environment scaffolding. Make s
 make setup
 make run
 ```
+
+### Note: Groq(Llama 3.3 70B)  worked better when testing
 
 ## Disclaimer and Legal Notice
 
