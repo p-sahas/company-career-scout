@@ -186,7 +186,7 @@ def _generate_pdf(report: dict) -> bytes:
     # Source breakdown
     pdf.add_page()
     pdf.set_font("Helvetica", "B", 14)
-    pdf.cell(0, 10, _safe_pdf_text("Results by Source"), ln=True)
+    pdf.cell(0, 10, _safe_pdf_text("Results by Source & Links"), ln=True)
     pdf.ln(3)
 
     by_source = report.get("by_source", {})
@@ -208,7 +208,18 @@ def _generate_pdf(report: dict) -> bytes:
                 ),
                 ln=True,
             )
-        pdf.ln(2)
+            
+        urls = source_data.get("urls", [])
+        if urls:
+            pdf.ln(1)
+            pdf.set_font("Helvetica", "", 8)
+            pdf.set_text_color(0, 0, 255) # Blue
+            for url in set(urls):
+                if not url.startswith("http"): continue
+                pdf.cell(0, 4, _safe_pdf_text(f"  {url}"), ln=True, link=url)
+            pdf.set_text_color(0, 0, 0)
+            
+        pdf.ln(4)
 
     return bytes(pdf.output())
 

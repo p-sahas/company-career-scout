@@ -291,15 +291,15 @@ if search_company:
                 view_cols = st.columns(3)
 
                 with view_cols[0]:
-                    st.markdown("#### :bust_in_silhouette: Employee View")
+                    st.markdown("#### 👤 Employee View")
                     st.markdown(summary.get("what_employees_say", "No data."))
 
                 with view_cols[1]:
-                    st.markdown("#### :shopping_trolley: Customer View")
+                    st.markdown("#### 🛒 Customer View")
                     st.markdown(summary.get("what_customers_say", "No data."))
 
                 with view_cols[2]:
-                    st.markdown("#### :newspaper: Press View")
+                    st.markdown("#### 📰 Press View")
                     st.markdown(summary.get("what_press_says", "No data."))
 
                 # Pros & Cons
@@ -307,12 +307,12 @@ if search_company:
                 pros_col, cons_col = st.columns(2)
 
                 with pros_col:
-                    st.markdown("#### :white_check_mark: Top Pros")
+                    st.markdown("#### ✅ Top Pros")
                     for pro in summary.get("top_5_pros", ["No data available"]):
                         st.markdown(f"- {pro}")
 
                 with cons_col:
-                    st.markdown("#### :x: Top Cons")
+                    st.markdown("#### ❌ Top Cons")
                     for con in summary.get("top_5_cons", ["No data available"]):
                         st.markdown(f"- {con}")
 
