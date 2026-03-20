@@ -12,26 +12,26 @@ SENTIMENT_COLORS = {
 }
 
 REVIEWER_BADGES = {
-    "employee": (":bust_in_silhouette: Employee", "#3b82f6"),
-    "customer": (":shopping_trolley: Customer", "#f59e0b"),
-    "press": (":newspaper: Press", "#8b5cf6"),
-    "job_seeker": (":briefcase: Job Seeker", "#06b6d4"),
-    "general": (":globe_with_meridians: General", "#64748b"),
+    "employee": ("👤 Employee", "#3b82f6"),
+    "customer": ("🛒 Customer", "#f59e0b"),
+    "press": ("📰 Press", "#8b5cf6"),
+    "job_seeker": ("💼 Job Seeker", "#06b6d4"),
+    "general": ("🌐 General", "#64748b"),
 }
 
 THEME_LABELS = {
-    "salary_benefits": ":moneybag: Salary & Benefits",
-    "work_life_balance": ":balance_scale: Work-Life Balance",
-    "management_culture": ":office: Management Culture",
-    "product_quality": ":star: Product Quality",
-    "customer_service": ":headphones: Customer Service",
-    "pricing": ":label: Pricing",
-    "delivery": ":package: Delivery",
-    "job_security": ":shield: Job Security",
-    "office_environment": ":house: Office Environment",
-    "career_growth": ":chart_with_upwards_trend: Career Growth",
-    "ethical_practices": ":handshake: Ethical Practices",
-    "layoffs_restructuring": ":warning: Layoffs/Restructuring",
+    "salary_benefits": ("💰 Salary & Benefits"),
+    "work_life_balance": ("⚖️ Work-Life Balance"),
+    "management_culture": ("🏢 Management Culture"),
+    "product_quality": ("⭐ Product Quality"),
+    "customer_service": ("🎧 Customer Service"),
+    "pricing": ("🏷️ Pricing"),
+    "delivery": ("📦 Delivery"),
+    "job_security": ("🛡️ Job Security"),
+    "office_environment": ("🏠 Office Environment"),
+    "career_growth": ("📈 Career Growth"),
+    "ethical_practices": ("🤝 Ethical Practices"),
+    "layoffs_restructuring": ("⚠️ Layoffs/Restructuring"),
 }
 
 
